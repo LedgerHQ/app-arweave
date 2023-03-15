@@ -80,9 +80,13 @@ APP_LOAD_PARAMS = --delete $(COMMON_LOAD_PARAMS) --path $(APPPATH) --path "44'/1
 DEFINES += HAVE_PENDING_REVIEW_SCREEN
 
 INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
-APP_SOURCE_PATH   += $(BOLOS_SDK)/lib_cxng/src/cx_rsa.c
-APP_SOURCE_PATH   += $(BOLOS_SDK)/lib_cxng/src/cx_pkcs1.c
-APP_SOURCE_PATH   += $(BOLOS_SDK)/lib_cxng/src/cx_utils.c
+# APP_SOURCE_PATH   += $(BOLOS_SDK)/lib_cxng/src/cx_rsa.c
+# APP_SOURCE_PATH   += $(BOLOS_SDK)/lib_cxng/src/cx_pkcs1.c
+# APP_SOURCE_PATH   += $(BOLOS_SDK)/lib_cxng/src/cx_utils.c
+APP_SOURCE_FILES   += $(BOLOS_SDK)/lib_cxng/src/cx_rsa.c
+APP_SOURCE_FILES   += $(BOLOS_SDK)/lib_cxng/src/cx_pkcs1.c
+APP_SOURCE_FILES   += $(BOLOS_SDK)/lib_cxng/src/cx_utils.c
+APP_SOURCE_FILES   += $(BOLOS_SDK)/lib_cxng/src/cx_ram.c
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 APP_LOAD_PARAMS += --appFlags 0x000
