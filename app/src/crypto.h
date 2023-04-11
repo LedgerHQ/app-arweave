@@ -26,26 +26,13 @@ extern "C" {
 #include <sigutils.h>
 #include "zxerror.h"
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX)
-
-#ifdef HAVE_RSA
-#include "cx_ram.h"
-#endif // HAVE_RSA
-
-#endif
-
-void crypto_sha384(const unsigned char *in, unsigned int inLen, unsigned char *out, unsigned int outLen);
-
 zxerr_t crypto_fillAddress(uint8_t *buffer, uint16_t bufferLen, uint16_t *addrLen);
 
 zxerr_t crypto_getsignature_part(uint8_t *buffer, uint16_t bufferLen, uint8_t index);
 zxerr_t crypto_getpubkey_part(uint8_t *buffer, uint16_t bufferLen, uint8_t index);
 
-        zxerr_t crypto_sign(uint8_t *signature,
-                     uint16_t signatureMaxlen,
-                     const uint8_t *message,
-                     uint16_t messageLen,
-                     uint16_t *sigSize);
+zxerr_t crypto_sign(uint8_t *signature, uint16_t signatureMaxlen,
+                    const uint8_t *message, uint16_t messageLen, uint16_t *sigSize);
 
 #ifdef __cplusplus
 }

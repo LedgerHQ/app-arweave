@@ -89,10 +89,11 @@ file(GLOB_RECURSE LIB_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/zxmacros.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/base64.c
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/sha512/sha512.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/ledger-zxlib/src/zxformat.c
         #########
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/b64url.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/crypto.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/crypto_helper.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl.c
         )
 

@@ -22,8 +22,9 @@
 #include "parser_txdef.h"
 #include "coin.h"
 #include "b64url.h"
+#include "crypto_helper.h"
 
-#if defined(TARGET_NANOX)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 // For some reason NanoX requires this function
 void __assert_fail(__Z_UNUSED const char * assertion, __Z_UNUSED const char * file, __Z_UNUSED unsigned int line, __Z_UNUSED const char * function){
     while(1) {};
@@ -129,6 +130,9 @@ void parser_applyDigestTags(deepHash_t *dh) {
 }
 
 parser_error_t parser_getDigest(uint8_t *digest, uint16_t digestLen) {
+    if (digestLen < SHA384_DIGEST_LEN) {
+        return parser_unexpected_buffer_end;
+    }
     MEMZERO(digest, digestLen);
     deepHash_t ctx;
     MEMZERO(&ctx, sizeof(taggedHash_t));
@@ -148,7 +152,7 @@ parser_error_t parser_getDigest(uint8_t *digest, uint16_t digestLen) {
     hashChunkWithAccumulator(&ctx, parser_tx_obj.data_size.ptr, parser_tx_obj.data_size.len);
     hashChunkWithAccumulator(&ctx, parser_tx_obj.data_root.ptr, parser_tx_obj.data_root.len);
 
-    MEMCPY(digest, ctx.acc, 48);
+    MEMCPY(digest, ctx.acc, SHA384_DIGEST_LEN);
     return parser_ok;
 }
 
@@ -168,7 +172,39 @@ parser_error_t parser_printTarget(const parser_element_t *v,
     return parser_ok;
 }
 
-parser_error_t parser_printQuantity(const parser_element_t *v,
+parser_error_t parser_printQuantity(const parser_element_t *c,
+                                   uint8_t decimalPlaces,
+                                   bool trimTrailingZeros,
+                                   char postfix[],
+                                   char prefix[],
+                                   char *outValue, uint16_t outValueLen,
+                                   uint8_t pageIdx, uint8_t *pageCount) {
+    char bufferUI[200];
+    MEMZERO(outValue, outValueLen);
+    MEMZERO(bufferUI, sizeof(bufferUI));
+    *pageCount = 1;
+
+    MEMCPY(bufferUI, c->ptr, c->len);
+
+    //Format number
+    if (intstr_to_fpstr_inplace(bufferUI, sizeof(bufferUI), decimalPlaces) == 0) {
+        return parser_unexpected_value;
+    }
+
+    if (z_str3join(bufferUI, sizeof(bufferUI), prefix, postfix) != zxerr_ok) {
+        return parser_unexpected_buffer_end;
+    }
+
+    if(trimTrailingZeros) {
+        number_inplace_trimming(bufferUI, 1);
+    }
+
+    pageString(outValue, outValueLen, bufferUI, pageIdx, pageCount);
+
+    return parser_ok;
+}
+
+parser_error_t parser_printSize(const parser_element_t *v,
                                     char *outVal, uint16_t outValLen,
                                     uint8_t pageIdx, uint8_t *pageCount) {
     MEMZERO(outVal, outValLen);
@@ -273,7 +309,8 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
             return parser_ok;
         case 1:
             snprintf(outKey, outKeyLen, "Quantity");
-            CHECK_PARSER_ERR(parser_printQuantity(&parser_tx_obj.quantity, outVal, outValLen, pageIdx, pageCount));
+             CHECK_PARSER_ERR(parser_printQuantity(&parser_tx_obj.quantity, COIN_AMOUNT_DECIMAL_PLACES, true, "", COIN_DEFAULT_DENOM_REPR,
+             outVal, outValLen, pageIdx, pageCount));
             return parser_ok;
         case 2:
             snprintf(outKey, outKeyLen, "Reward");
@@ -284,18 +321,25 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
             CHECK_PARSER_ERR(parser_printLastTx(&parser_tx_obj.last_tx, outVal, outValLen, pageIdx, pageCount));
             return parser_ok;
         case 4:
-            snprintf(outKey, outKeyLen, "Data root");
-            CHECK_PARSER_ERR(parser_printData(&parser_tx_obj.data_root, outVal, outValLen, pageIdx, pageCount));
-            return parser_ok;
-        case 5:
             snprintf(outKey, outKeyLen, "Data size");
-            CHECK_PARSER_ERR(parser_printQuantity(&parser_tx_obj.data_size, outVal, outValLen, pageIdx, pageCount));
+            CHECK_PARSER_ERR(parser_printSize(&parser_tx_obj.data_size, outVal, outValLen, pageIdx, pageCount));
             return parser_ok;
-        default:
-            displayIdx -= CONST_NUM_UI_ITEMS;
-            return parser_printTag(&parser_tx_obj.tags[displayIdx],
-                                   outKey, outKeyLen,
-                                   outVal, outValLen,
-                                   pageIdx, pageCount);
     }
+
+    if (displayIdx == 5 && parser_tx_obj.data_root.len != 0) {
+        snprintf(outKey, outKeyLen, "Data root");
+        CHECK_PARSER_ERR(parser_printData(&parser_tx_obj.data_root, outVal, outValLen, pageIdx, pageCount));
+        return parser_ok;
+    }
+
+    displayIdx -= CONST_NUM_UI_ITEMS + DATA_SIZE_NUM_UI_ITEMS + (parser_tx_obj.data_root.len != 0 ? DATA_ROOT_NUM_UI_ITEMS : 0);
+
+    if (displayIdx >= MAX_NUMBER_TAGS) {
+        return parser_unexpected_value;
+    }
+
+    return parser_printTag(&parser_tx_obj.tags[displayIdx],
+                            outKey, outKeyLen,
+                            outVal, outValLen,
+                            pageIdx, pageCount);
 }

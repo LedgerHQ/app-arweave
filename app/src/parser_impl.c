@@ -150,7 +150,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v) {
     return parser_ok;
 }
 
-#if defined(TARGET_NANOS) || defined(TARGET_NANOX)
+#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 parser_error_t _validateTx(__Z_UNUSED const parser_context_t *c, const parser_tx_t *v) {
     zxerr_t zxerr;
     uint8_t rsakey[RSA_MODULUS_HALVE];
@@ -174,5 +174,8 @@ parser_error_t _validateTx(__Z_UNUSED const parser_context_t *c, const parser_tx
 #endif
 
 uint8_t _getNumItems(__Z_UNUSED const parser_context_t *c, const parser_tx_t *v) {
-    return CONST_NUM_UI_ITEMS + v->tags_count;
+    if(!app_mode_expert())
+        return (CONST_NUM_UI_ITEMS);
+
+    return CONST_NUM_UI_ITEMS + v->tags_count + DATA_SIZE_NUM_UI_ITEMS + (v->data_root.len > 0 ? DATA_ROOT_NUM_UI_ITEMS : 0);
 }
