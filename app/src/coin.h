@@ -1,5 +1,6 @@
 /*******************************************************************************
 *  (c) 2018-2021 Zondax GmbH
+*  Modifications (c) 2026 Forward Research
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -42,7 +43,7 @@ typedef enum {
 #define COIN_DEFAULT_DENOM_REPR             "AR "
 #define COIN_SUPPORTED_TX_VERSION           0
 
-#define MENU_MAIN_APP_LINE1                 "Arweave"
+#define MENU_MAIN_APP_LINE1                 "Permaweb"
 #define MENU_MAIN_APP_LINE2                 "Ready"
 #define MENU_MAIN_APP_LINE2_SECRET          "???"
 #define APPVERSION_LINE1                    "Version"
@@ -52,6 +53,8 @@ typedef enum {
 
 #define INS_GET_SIG                     0x10
 #define INS_GET_PK                      0x20
+#define INS_SIGN_DATA_ITEM              0x03
+#define INS_SIGN_HTTP                   0x04
 
 #ifdef __cplusplus
 }

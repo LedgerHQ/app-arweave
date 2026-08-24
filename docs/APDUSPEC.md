@@ -1,5 +1,8 @@
 # Arweave App
 
+The experimental AO commands are specified in [ANS104.md](ANS104.md) and
+[HTTPSIG.md](HTTPSIG.md).
+
 ## General structure
 
 The general structure of commands and responses is as follows:

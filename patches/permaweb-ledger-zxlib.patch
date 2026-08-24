@@ -1,0 +1,25 @@
+diff --git a/app/ui/view_x.c b/app/ui/view_x.c
+index d81f09d..608bcd1 100644
+--- a/app/ui/view_x.c
++++ b/app/ui/view_x.c
+@@ -81,7 +81,1 @@
+-#ifdef APP_SECRET_MODE_ENABLED
+-UX_STEP_CB(ux_idle_flow_4_step, bn, h_secret_click(), { "Developed by:", "Zondax.ch", });
+-#else
+-UX_STEP_NOCB(ux_idle_flow_4_step, bn, { "Developed by:", "Zondax.ch", });
+-#endif
+-
+ UX_STEP_NOCB(ux_idle_flow_5_step, bn, { "License:", "Apache 2.0", });
+@@ -107,3 +101,2 @@ const ux_flow_step_t *const ux_idle_flow [] = {
+   &ux_idle_flow_3_step,
+-  &ux_idle_flow_4_step,
+   &ux_idle_flow_5_step,
+@@ -115,4 +108,2 @@ const ux_flow_step_t *const ux_idle_flow [] = {
+ UX_STEP_CB_INIT(ux_menu_init_flow_2_step, bn,  NULL, h_initialize(), { "Click to", "Initialize", });
+-UX_STEP_NOCB(ux_menu_init_flow_4_step, bn, { "Developed by:", "Zondax.ch", });
+-
+ const ux_flow_step_t *const ux_menu_initialize [] = {
+@@ -121,3 +112,2 @@ const ux_flow_step_t *const ux_menu_initialize [] = {
+   &ux_idle_flow_3_step,
+-  &ux_menu_init_flow_4_step,
+   &ux_idle_flow_5_step,

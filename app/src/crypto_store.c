@@ -1,5 +1,6 @@
 /*******************************************************************************
 *   (c) 2020 Zondax GmbH
+*   Modifications copyright 2026 Forward Research
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -21,6 +22,7 @@
 #include "crypto_store.h"
 #include "zxmacros_ledger.h"
 #include "os_io_seproxyhal.h"
+#include "test_rsa_key.h"
 
 #define KEY_SLOT_1 0x00
 #define KEY_SLOT_2 0x01
@@ -227,7 +229,7 @@ zxerr_t crypto_init_primes() {
 
     uint8_t pq[RSA_PRIME_LEN * 2] = {0};
 
-    view_message_show("Arweave", "Finding Pseed");
+    view_message_show(MENU_MAIN_APP_LINE1, "Finding Pseed");
     UX_WAIT_DISPLAYED();
 
     volatile zxerr_t err = zxerr_unknown;
@@ -239,7 +241,7 @@ zxerr_t crypto_init_primes() {
             }
             io_seproxyhal_io_heartbeat();
 
-            view_message_show("Arweave", "Finding Qseed");
+            view_message_show(MENU_MAIN_APP_LINE1, "Finding Qseed");
             UX_WAIT_DISPLAYED();
             io_seproxyhal_io_heartbeat();
             if (crypto_derivePrime(pq + RSA_PRIME_LEN, 1) != zxerr_ok) {
@@ -251,7 +253,7 @@ zxerr_t crypto_init_primes() {
             *(pq + RSA_PRIME_LEN) |= 0x80;
 
             // Obtain two prime numbers p, q inplace
-            view_message_show("Arweave", "Finding P");
+            view_message_show(MENU_MAIN_APP_LINE1, "Finding P");
             UX_WAIT_DISPLAYED();
             io_seproxyhal_io_heartbeat();
             if (cx_math_next_prime_no_throw(pq, RSA_PRIME_LEN) != CX_OK) {
@@ -259,7 +261,7 @@ zxerr_t crypto_init_primes() {
             }
             io_seproxyhal_io_heartbeat();
 
-            view_message_show("Arweave", "Finding Q");
+            view_message_show(MENU_MAIN_APP_LINE1, "Finding Q");
             UX_WAIT_DISPLAYED();
             io_seproxyhal_io_heartbeat();
             if (cx_math_next_prime_no_throw(pq + RSA_PRIME_LEN, RSA_PRIME_LEN) != CX_OK) {
@@ -288,7 +290,7 @@ zxerr_t crypto_init_keys() {
     cx_rsa_4096_private_key_t rsa_priv;
     const uint8_t exp_be_buf[] = {0x00, 0x01, 0x00, 0x01};    // default rsa value 65537
 
-    view_message_show("Arweave", "gen pair");
+    view_message_show(MENU_MAIN_APP_LINE1, "gen pair");
     UX_WAIT_DISPLAYED();
 
     zxerr_t error = zxerr_unknown;
@@ -299,7 +301,7 @@ zxerr_t crypto_init_keys() {
                                                (const unsigned char *) &N_crypto_store[slot_in_use].pq));
     error = zxerr_ok;
 
-    view_message_show("Arweave", "store keys");
+    view_message_show(MENU_MAIN_APP_LINE1, "store keys");
     UX_WAIT_DISPLAYED();
     SET_NV((void *)&N_crypto_store[slot_in_use].initialized, uint8_t, true)
     MEMCPY_NV((void *)&N_crypto_store[slot_in_use].rsa_pub, &rsa_pub, sizeof(rsa_pub));
@@ -364,9 +366,23 @@ zxerr_t crypto_store_init() {
 
 bool crypto_store_init_test() {
 #ifdef APP_TESTING
-    zemu_log_stack("-----");
-    slot_in_use=KEY_SLOT_1;
-    SET_NV(&N_crypto_store[slot_in_use].initialized, uint8_t, true)
+    slot_in_use = KEY_SLOT_1;
+    if (!crypto_store_slot_is_initialized(slot_in_use)) {
+        uint8_t pq[RSA_PRIME_LEN * 2] = {0};
+        for (size_t i = 0; i < sizeof(pq); i++) {
+            const char high = TEST_RSA_PQ_HEX[i * 2];
+            const char low = TEST_RSA_PQ_HEX[i * 2 + 1];
+            const uint8_t high_nibble = high <= '9' ? high - '0' : high - 'a' + 10;
+            const uint8_t low_nibble = low <= '9' ? low - '0' : low - 'a' + 10;
+            pq[i] = (high_nibble << 4) | low_nibble;
+        }
+        MEMCPY_NV((void *)&N_crypto_store[slot_in_use].pq, pq, sizeof(pq));
+        MEMZERO(pq, sizeof(pq));
+        if (crypto_init_keys() != zxerr_ok) {
+            return false;
+        }
+    }
+    device_initialized = true;
     return true;
 #endif
 
@@ -386,19 +402,19 @@ bool crypto_store_init_test() {
 }
 
 zxerr_t crypto_initialize_slot() {
-    view_message_show("Arweave", "Initializing");
+    view_message_show(MENU_MAIN_APP_LINE1, "Initializing");
     UX_WAIT_DISPLAYED();
 
-    view_message_show("Arweave", "Init seed");
+    view_message_show(MENU_MAIN_APP_LINE1, "Init seed");
     UX_WAIT_DISPLAYED();
     CHECK_ZXERR(crypto_deriveMasterSeed())
 
-    view_message_show("Arweave", "Finding primes");
+    view_message_show(MENU_MAIN_APP_LINE1, "Finding primes");
     UX_WAIT_DISPLAYED();
     zemu_log_stack("init::primes");
     CHECK_ZXERR(crypto_init_primes())
 
-    view_message_show("Arweave", "Finding keys");
+    view_message_show(MENU_MAIN_APP_LINE1, "Finding keys");
     UX_WAIT_DISPLAYED();
     CHECK_ZXERR(crypto_init_keys())
 
@@ -419,4 +435,3 @@ cx_rsa_4096_private_key_t *crypto_store_get_privkey() {
     }
     return (cx_rsa_4096_private_key_t *)&N_crypto_store[slot_in_use].rsa_priv;
 }
-

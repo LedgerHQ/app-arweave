@@ -2,6 +2,7 @@
 #  Ledger App
 #  (c) 2018 - 2022 Zondax GmbH
 #  (c) 2017 Ledger
+#  Modifications copyright 2026 Forward Research
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -43,7 +44,7 @@ $(info COIN  = [$(COIN)])
 ifeq ($(COIN),ARWEAVE)
 # Main app configuration
 DEFINES += APP_STANDARD
-APPNAME = "Arweave"
+APPNAME = "Permaweb"
 APPPATH = "44'/472'" --path "44'/1'"
 
 else

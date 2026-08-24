@@ -1,5 +1,6 @@
 #*******************************************************************************
 #*   (c) 2018 Zondax GmbH
+#*   Modifications (c) 2026 Forward Research
 #*
 #*  Licensed under the Apache License, Version 2.0 (the "License");
 #*  you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
 #*  See the License for the specific language governing permissions and
 #*  limitations under the License.
 #********************************************************************************
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16)
 project(ledger-arweave VERSION 0.0.0)
 enable_testing()
 
@@ -40,18 +41,18 @@ if (ENABLE_FUZZING)
         message(FATAL_ERROR "Fuzz logging enabled")
     endif()
 
-    set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,bugprone-*,cert-*,clang-analyzer-*,-cert-err58-cpp,misc-*,-bugprone-suspicious-include)
+    find_program(CLANG_TIDY_EXE clang-tidy)
+    if (CLANG_TIDY_EXE)
+        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE} -checks=-*,bugprone-*,cert-*,clang-analyzer-*,-cert-err58-cpp,misc-*,-bugprone-suspicious-include)
+    endif ()
 
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         # require at least clang 11
         if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
             message(FATAL_ERROR "Clang version must be at least 11.0!")
         endif ()
     else ()
-        message(FATAL_ERROR
-                "You are using an unsupported compiler! Fuzzing only works with Clang 11.\n"
-                "1. Install clang-12 \n"
-                "2. Pass -DCMAKE_C_COMPILER=clang-11 -DCMAKE_CXX_COMPILER=clang++-11")
+        message(FATAL_ERROR "Fuzzing requires Clang 11 or newer")
     endif ()
 
     string(APPEND CMAKE_C_FLAGS " -fsanitize=fuzzer-no-link")
@@ -71,8 +72,22 @@ if (ENABLE_SANITIZERS)
     string(APPEND CMAKE_LINKER_FLAGS " -fsanitize=address,undefined -fsanitize-recover=address,undefined")
 endif ()
 
-include(cmake/conan/CMakeLists.txt)
-add_subdirectory(cmake/gtest)
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.11.0)
+FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 9.1.0)
+FetchContent_Declare(
+        jsoncpp
+        GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp.git
+        GIT_TAG 1.9.5)
+set(JSONCPP_WITH_TESTS OFF CACHE BOOL "" FORCE)
+set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest fmt jsoncpp)
 
 string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address -fno-omit-frame-pointer")
 string(APPEND CMAKE_LINKER_FLAGS " -fsanitize=address -fno-omit-frame-pointer")
@@ -95,6 +110,8 @@ file(GLOB_RECURSE LIB_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/crypto_helper.c
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_impl.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_dataitem.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/parser_httpsig.c
         )
 
 add_library(app_lib STATIC
@@ -120,8 +137,6 @@ add_executable(unittests ${TESTS_SRC})
 target_include_directories(unittests PRIVATE
         ${gtest_SOURCE_DIR}/include
         ${gmock_SOURCE_DIR}/include
-        ${CONAN_INCLUDE_DIRS_FMT}
-        ${CONAN_INCLUDE_DIRS_JSONCPP}
         deps/PicoSHA2
         )
 
@@ -129,8 +144,8 @@ target_include_directories(unittests PRIVATE
 target_link_libraries(unittests PRIVATE
         gtest_main
         app_lib
-        CONAN_PKG::fmt
-        CONAN_PKG::jsoncpp)
+        fmt::fmt
+        jsoncpp_lib)
 
 add_compile_definitions(TESTVECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/")
 add_test(unittests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittests)
@@ -142,6 +157,8 @@ set_tests_properties(unittests PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOUR
 if (ENABLE_FUZZING)
     set(FUZZ_TARGETS
         parser_parse
+        dataitem_parse
+        httpsig_parse
         )
 
     foreach(target ${FUZZ_TARGETS})

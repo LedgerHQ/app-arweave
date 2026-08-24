@@ -11,6 +11,8 @@ MUTATE_DEPTH = random.randint(1, 20)
 # (fuzzer name, max length, max time scale factor)
 CONFIGS = [
     ('parser_parse', 17000, 4),
+    ('dataitem_parse', 16384, 1),
+    ('httpsig_parse', 16384, 1),
 ]
 
 for config in CONFIGS:
@@ -37,5 +39,3 @@ for config in CONFIGS:
         error_code = subprocess.call(cmd, env=env)
         if error_code != 0:
             exit(error_code)
-
-

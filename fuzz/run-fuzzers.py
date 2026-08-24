@@ -11,6 +11,8 @@ MUTATE_DEPTH = random.randint(1, 20)
 # (fuzzer name, max length, max time scale factor)
 CONFIGS = [
     ('parser_parse', 17000, 4),
+    ('dataitem_parse', 16384, 1),
+    ('httpsig_parse', 16384, 1),
 ]
 
 for config in CONFIGS:
@@ -30,7 +32,7 @@ for config in CONFIGS:
     env['UBSAN_OPTIONS'] = 'halt_on_error=1:print_stacktrace=1'
 
     cmd = [fuzz_path, f'-max_total_time={max_time}',
-           f'-jobs=16'
+           f'-jobs=16',
            f'-max_len={max_len}',
            f'-mutate_depth={MUTATE_DEPTH}',
            f'-artifact_prefix={artifact_dir}/',

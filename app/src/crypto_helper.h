@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 zxerr_t crypto_sha384(const unsigned char *in, unsigned int inLen, unsigned char *out, unsigned int outLen);
+zxerr_t crypto_sha512(const unsigned char *in, unsigned int inLen, unsigned char *out, unsigned int outLen);
 
 #ifdef __cplusplus
 }

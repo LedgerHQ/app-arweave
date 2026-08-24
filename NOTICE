@@ -1,0 +1,12 @@
+Permaweb Ledger application
+
+Copyright 2018-2022 Zondax GmbH
+Copyright 2016-2017 Ledger
+Modifications copyright 2026 Forward Research
+
+This software is derived from the LedgerHQ/app-arweave and
+Zondax/ledger-arweave projects. Forward Research modifications include the
+separate Permaweb application identity and experimental AO and ANS-104 signing
+support.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.

@@ -1,5 +1,6 @@
 /*******************************************************************************
 *  (c) 2019 Zondax GmbH
+*  Modifications (c) 2026 Forward Research
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -44,6 +45,10 @@ uint8_t *tx_get_buffer();
 /// \return It returns NULL if data is valid or error message otherwise.
 const char *tx_parse();
 
+/// Parse an ANS-104 Data Item stored in the transaction buffer.
+const char *dataitem_tx_parse();
+const char *httpsig_tx_parse();
+
 /// Release zbuffer memory
 void tx_parse_reset();
 
@@ -55,3 +60,15 @@ zxerr_t tx_getItem(int8_t displayIdx,
                    char *outKey, uint16_t outKeyLen,
                    char *outValue, uint16_t outValueLen,
                    uint8_t pageIdx, uint8_t *pageCount);
+
+zxerr_t dataitem_tx_getNumItems(uint8_t *num_items);
+
+zxerr_t dataitem_tx_getItem(int8_t displayIdx,
+                            char *outKey, uint16_t outKeyLen,
+                            char *outValue, uint16_t outValueLen,
+                            uint8_t pageIdx, uint8_t *pageCount);
+zxerr_t httpsig_tx_getNumItems(uint8_t *num_items);
+zxerr_t httpsig_tx_getItem(int8_t displayIdx,
+                           char *outKey, uint16_t outKeyLen,
+                           char *outValue, uint16_t outValueLen,
+                           uint8_t pageIdx, uint8_t *pageCount);

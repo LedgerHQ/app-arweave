@@ -1,0 +1,2 @@
+ledgerblue==0.1.58
+pycryptodome==3.23.0

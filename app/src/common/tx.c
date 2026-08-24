@@ -1,5 +1,6 @@
 /*******************************************************************************
 *  (c) 2019 Zondax GmbH
+*  Modifications (c) 2026 Forward Research
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -18,6 +19,8 @@
 #include "apdu_codes.h"
 #include "buffering.h"
 #include "parser.h"
+#include "parser_dataitem.h"
+#include "parser_httpsig.h"
 #include <string.h>
 #include "zxmacros.h"
 
@@ -44,6 +47,8 @@ storage_t NV_CONST N_appdata_impl __attribute__((aligned(64)));
 #endif
 
 parser_context_t ctx_parsed_tx;
+parser_context_t ctx_parsed_dataitem;
+parser_context_t ctx_parsed_httpsig;
 
 void tx_initialize()
 {
@@ -101,6 +106,30 @@ const char *tx_parse()
     return NULL;
 }
 
+const char *dataitem_tx_parse()
+{
+    uint8_t err = dataitem_parse(&ctx_parsed_dataitem,
+                                 tx_get_buffer(),
+                                 tx_get_buffer_length());
+    if (err != parser_ok) return parser_getErrorDescription(err);
+
+    err = dataitem_validate(&ctx_parsed_dataitem);
+    CHECK_APP_CANARY()
+    if (err != parser_ok) return parser_getErrorDescription(err);
+    return NULL;
+}
+
+const char *httpsig_tx_parse()
+{
+    uint8_t err = httpsig_parse(&ctx_parsed_httpsig,
+                                tx_get_buffer(),
+                                tx_get_buffer_length());
+    if (err != parser_ok) return parser_getErrorDescription(err);
+    err = httpsig_validate(&ctx_parsed_httpsig);
+    CHECK_APP_CANARY()
+    return err == parser_ok ? NULL : parser_getErrorDescription(err);
+}
+
 void tx_parse_reset()
 {
     MEMZERO(&tx_obj, sizeof(tx_obj));
@@ -148,4 +177,47 @@ zxerr_t tx_getItem(int8_t displayIdx,
         return zxerr_unknown;
 
     return zxerr_ok;
+}
+
+zxerr_t dataitem_tx_getNumItems(uint8_t *num_items)
+{
+    return dataitem_getNumItems(&ctx_parsed_dataitem, num_items) == parser_ok
+               ? zxerr_ok : zxerr_no_data;
+}
+
+zxerr_t dataitem_tx_getItem(int8_t displayIdx,
+                            char *outKey, uint16_t outKeyLen,
+                            char *outVal, uint16_t outValLen,
+                            uint8_t pageIdx, uint8_t *pageCount)
+{
+    uint8_t numItems = 0;
+    CHECK_ZXERR(dataitem_tx_getNumItems(&numItems))
+    if (displayIdx < 0 || displayIdx >= numItems) return zxerr_no_data;
+
+    parser_error_t err = dataitem_getItem(&ctx_parsed_dataitem, displayIdx,
+                                          outKey, outKeyLen, outVal, outValLen,
+                                          pageIdx, pageCount);
+    if (err == parser_no_data || err == parser_display_idx_out_of_range ||
+        err == parser_display_page_out_of_range) return zxerr_no_data;
+    return err == parser_ok ? zxerr_ok : zxerr_unknown;
+}
+
+zxerr_t httpsig_tx_getNumItems(uint8_t *num_items)
+{
+    return httpsig_getNumItems(&ctx_parsed_httpsig, num_items) == parser_ok
+               ? zxerr_ok : zxerr_no_data;
+}
+
+zxerr_t httpsig_tx_getItem(int8_t displayIdx,
+                           char *outKey, uint16_t outKeyLen,
+                           char *outVal, uint16_t outValLen,
+                           uint8_t pageIdx, uint8_t *pageCount)
+{
+    uint8_t numItems = 0;
+    CHECK_ZXERR(httpsig_tx_getNumItems(&numItems))
+    if (displayIdx < 0 || displayIdx >= numItems) return zxerr_no_data;
+    parser_error_t err = httpsig_getItem(&ctx_parsed_httpsig, displayIdx,
+                                         outKey, outKeyLen, outVal, outValLen,
+                                         pageIdx, pageCount);
+    return err == parser_ok ? zxerr_ok : zxerr_no_data;
 }

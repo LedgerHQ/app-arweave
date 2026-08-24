@@ -39,3 +39,17 @@ zxerr_t crypto_sha384(const unsigned char *in, unsigned int inLen, unsigned char
 #endif
     return zxerr_ok;
 }
+
+zxerr_t crypto_sha512(const unsigned char *in, unsigned int inLen, unsigned char *out, unsigned int outLen) {
+    if (outLen < 64) return zxerr_buffer_too_small;
+#if defined(TARGET_NANOS) || defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+    cx_sha512_t ctx;
+    cx_sha512_init(&ctx);
+    if (cx_hash_no_throw(&ctx.header, CX_LAST, in, inLen, out, outLen) != CX_OK) {
+        return zxerr_unknown;
+    }
+#else
+    SHA512(in, inLen, out);
+#endif
+    return zxerr_ok;
+}

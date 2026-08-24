@@ -1,0 +1,2 @@
+ragger[tests,speculos]==1.47.2
+pycryptodome==3.23.0

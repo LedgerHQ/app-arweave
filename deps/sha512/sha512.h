@@ -27,9 +27,10 @@
 
 extern void SHA384(const uint8_t *in, size_t n,
                    uint8_t out[SHA512_DIGEST_LENGTH]);
+extern void SHA512(const uint8_t *in, size_t n,
+                   uint8_t out[SHA512_DIGEST_LENGTH]);
 
 // Zero the memory pointed to by v; this will not be optimized away.
 extern void secure_wipe(uint8_t *v, uint32_t n);
 
 #endif /* SHA512_H */
-

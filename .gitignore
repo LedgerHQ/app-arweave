@@ -77,6 +77,12 @@ cmake-build-fuzz/
 /app/debug/
 /app/obj/
 /build
+/build-native/
+/build-sanitize/
+/build-fuzz/
+/build-fuzz-linux/
+__pycache__/
+*.py[cod]
 app/build
 
 \deps/*

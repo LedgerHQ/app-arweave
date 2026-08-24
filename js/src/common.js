@@ -5,6 +5,7 @@ export const INS = {
   GET_VERSION: 0x00,
   GET_ADDRESS: 0x01,
   SIGN: 0x02,
+  SIGN_DATA_ITEM: 0x03,
 
   GET_SIG: 0x10,
   GET_PK: 0x20,
@@ -84,9 +85,9 @@ export function printBIP44Path(pathBytes) {
   }
 
   return `m/${printBIP44Item(pathValues[0])}/${printBIP44Item(
-    pathValues[1]
+    pathValues[1],
   )}/${printBIP44Item(pathValues[2])}/${printBIP44Item(
-    pathValues[3]
+    pathValues[3],
   )}/${printBIP44Item(pathValues[4])}`;
 }
 
@@ -180,7 +181,7 @@ export function serializePathv1(path) {
 
     if (Number.isNaN(childNumber)) {
       throw new Error(
-        `Invalid path : ${child} is not a number. (e.g "m/44'/1'/5'/0/3")`
+        `Invalid path : ${child} is not a number. (e.g "m/44'/1'/5'/0/3")`,
       );
     }
 

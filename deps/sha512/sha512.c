@@ -132,6 +132,19 @@ static void mbedtls_sha512_starts(mbedtls_sha512_context *ctx) {
     ctx->state[7] = UL64(0x47b5481dbefa4fa4);
 }
 
+static void mbedtls_sha512_starts_512(mbedtls_sha512_context *ctx) {
+    ctx->total[0] = 0;
+    ctx->total[1] = 0;
+    ctx->state[0] = UL64(0x6A09E667F3BCC908);
+    ctx->state[1] = UL64(0xBB67AE8584CAA73B);
+    ctx->state[2] = UL64(0x3C6EF372FE94F82B);
+    ctx->state[3] = UL64(0xA54FF53A5F1D36F1);
+    ctx->state[4] = UL64(0x510E527FADE682D1);
+    ctx->state[5] = UL64(0x9B05688C2B3E6C1F);
+    ctx->state[6] = UL64(0x1F83D9ABFB41BD6B);
+    ctx->state[7] = UL64(0x5BE0CD19137E2179);
+}
+
 /*
  * Round constants
  */
@@ -331,6 +344,16 @@ void SHA384(const uint8_t *in, size_t n, uint8_t out[SHA512_DIGEST_LENGTH]) {
 
     mbedtls_sha512_init(&ctx);
     mbedtls_sha512_starts(&ctx);
+    mbedtls_sha512_update(&ctx, in, n);
+    mbedtls_sha512_finish(&ctx, out);
+    secure_wipe((uint8_t *) &ctx, sizeof(ctx));
+}
+
+void SHA512(const uint8_t *in, size_t n, uint8_t out[SHA512_DIGEST_LENGTH]) {
+    mbedtls_sha512_context ctx;
+
+    mbedtls_sha512_init(&ctx);
+    mbedtls_sha512_starts_512(&ctx);
     mbedtls_sha512_update(&ctx, in, n);
     mbedtls_sha512_finish(&ctx, out);
     secure_wipe((uint8_t *) &ctx, sizeof(ctx));

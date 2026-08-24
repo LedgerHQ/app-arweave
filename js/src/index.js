@@ -1,6 +1,7 @@
 /** ******************************************************************************
  *  (c) 2019-2020 Zondax GmbH
  *  (c) 2016-2017 Ledger
+ *  Modifications (c) 2026 Forward Research
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -100,10 +101,10 @@ export default class ArweaveApp {
       console.log(currentTag);
 
       let encodedKey = ArweaveApp.encodeWithLen(
-        currentTag.get("name", { decode: true, string: false })
+        currentTag.get("name", { decode: true, string: false }),
       );
       let encodedVal = ArweaveApp.encodeWithLen(
-        currentTag.get("value", { decode: true, string: false })
+        currentTag.get("value", { decode: true, string: false }),
       );
 
       serializedTags.push(encodedKey);
@@ -114,30 +115,30 @@ export default class ArweaveApp {
 
     let tmp = [
       ArweaveApp.encodeWithLen(
-        Arweave.utils.stringToBuffer(tx.format.toString())
+        Arweave.utils.stringToBuffer(tx.format.toString()),
       ),
       ArweaveApp.encodeWithLen(
-        tx.get("owner", { decode: true, string: false })
+        tx.get("owner", { decode: true, string: false }),
       ),
       ArweaveApp.encodeWithLen(
-        tx.get("target", { decode: true, string: false })
+        tx.get("target", { decode: true, string: false }),
       ),
       ArweaveApp.encodeWithLen(
-        Arweave.utils.stringToBuffer(tx.quantity.toString())
+        Arweave.utils.stringToBuffer(tx.quantity.toString()),
       ),
       ArweaveApp.encodeWithLen(
-        Arweave.utils.stringToBuffer(tx.reward.toString())
+        Arweave.utils.stringToBuffer(tx.reward.toString()),
       ),
       ArweaveApp.encodeWithLen(
-        tx.get("last_tx", { decode: true, string: false })
+        tx.get("last_tx", { decode: true, string: false }),
       ),
       ArweaveApp.encodeu16(tx.tags.length),
       flatSerializedTags,
       ArweaveApp.encodeWithLen(
-        Arweave.utils.stringToBuffer(tx.data_size.toString())
+        Arweave.utils.stringToBuffer(tx.data_size.toString()),
       ),
       ArweaveApp.encodeWithLen(
-        tx.get("data_root", { decode: true, string: false })
+        tx.get("data_root", { decode: true, string: false }),
       ),
     ];
 
@@ -158,6 +159,24 @@ export default class ArweaveApp {
         end = buffer.length;
       }
       chunks.push(buffer.subarray(i, end));
+    }
+    return chunks;
+  }
+
+  static prepareDataItemChunks(dataItem) {
+    const messageBuffer = Buffer.from(dataItem);
+    if (messageBuffer.length < 1044) {
+      throw new Error("ANS-104 Data Item is too short");
+    }
+
+    const chunks = [Buffer.alloc(0)];
+    for (let i = 0; i < messageBuffer.length; i += CHUNK_SIZE) {
+      chunks.push(
+        messageBuffer.subarray(
+          i,
+          Math.min(i + CHUNK_SIZE, messageBuffer.length),
+        ),
+      );
     }
     return chunks;
   }
@@ -227,9 +246,14 @@ export default class ArweaveApp {
 
   async getAddressHash() {
     return this.transport
-      .send(CLA, INS.GET_ADDRESS, P1_VALUES.ONLY_RETRIEVE, 0, Buffer.from([]), [
-        0x9000,
-      ])
+      .send(
+        CLA,
+        INS.GET_ADDRESS,
+        P1_VALUES.ONLY_RETRIEVE,
+        0,
+        Buffer.from([]),
+        [0x9000],
+      )
       .then(processGetAddrResponse, processErrorResponse);
   }
 
@@ -268,15 +292,25 @@ export default class ArweaveApp {
   async getSignaturePart(partnum) {
     if (partnum == 0) {
       return this.transport
-        .send(CLA, INS.GET_SIG, P1_VALUES.ONLY_RETRIEVE, 0, Buffer.from([]), [
-          0x9000,
-        ])
+        .send(
+          CLA,
+          INS.GET_SIG,
+          P1_VALUES.ONLY_RETRIEVE,
+          0,
+          Buffer.from([]),
+          [0x9000],
+        )
         .then(processGetRSAResponse, processErrorResponse);
     } else {
       return this.transport
-        .send(CLA, INS.GET_SIG, P1_VALUES.ONLY_RETRIEVE, 1, Buffer.from([]), [
-          0x9000,
-        ])
+        .send(
+          CLA,
+          INS.GET_SIG,
+          P1_VALUES.ONLY_RETRIEVE,
+          1,
+          Buffer.from([]),
+          [0x9000],
+        )
         .then(processGetRSAResponse, processErrorResponse);
     }
   }
@@ -284,15 +318,25 @@ export default class ArweaveApp {
   async getPubKeyPart(partnum) {
     if (partnum == 0) {
       return this.transport
-        .send(CLA, INS.GET_PK, P1_VALUES.ONLY_RETRIEVE, 0, Buffer.from([]), [
-          0x9000,
-        ])
+        .send(
+          CLA,
+          INS.GET_PK,
+          P1_VALUES.ONLY_RETRIEVE,
+          0,
+          Buffer.from([]),
+          [0x9000],
+        )
         .then(processGetRSAResponse, processErrorResponse);
     } else {
       return this.transport
-        .send(CLA, INS.GET_PK, P1_VALUES.ONLY_RETRIEVE, 1, Buffer.from([]), [
-          0x9000,
-        ])
+        .send(
+          CLA,
+          INS.GET_PK,
+          P1_VALUES.ONLY_RETRIEVE,
+          1,
+          Buffer.from([]),
+          [0x9000],
+        )
         .then(processGetRSAResponse, processErrorResponse);
     }
   }
@@ -305,12 +349,12 @@ export default class ArweaveApp {
         P1_VALUES.SHOW_ADDRESS_IN_DEVICE,
         0,
         Buffer.from([]),
-        [0x9000]
+        [0x9000],
       )
       .then(processGetAddrResponse, processErrorResponse);
   }
 
-  async signSendChunk(chunkIdx, chunkNum, chunk) {
+  async sendSigningChunk(instruction, chunkIdx, chunkNum, chunk) {
     let payloadType = PAYLOAD_TYPE.ADD;
     if (chunkIdx === 1) {
       payloadType = PAYLOAD_TYPE.INIT;
@@ -319,7 +363,7 @@ export default class ArweaveApp {
       payloadType = PAYLOAD_TYPE.LAST;
     }
     return this.transport
-      .send(CLA, INS.SIGN, payloadType, 0, chunk, [0x9000, 0x6984, 0x6a80])
+      .send(CLA, instruction, payloadType, 0, chunk, [0x9000, 0x6984, 0x6a80])
       .then((response) => {
         const errorCodeData = response.slice(-2);
         const returnCode = errorCodeData[0] * 256 + errorCodeData[1];
@@ -342,6 +386,14 @@ export default class ArweaveApp {
           errorMessage: errorMessage,
         };
       }, processErrorResponse);
+  }
+
+  async signSendChunk(chunkIdx, chunkNum, chunk) {
+    return this.sendSigningChunk(INS.SIGN, chunkIdx, chunkNum, chunk);
+  }
+
+  async signDataItemSendChunk(chunkIdx, chunkNum, chunk) {
+    return this.sendSigningChunk(INS.SIGN_DATA_ITEM, chunkIdx, chunkNum, chunk);
   }
 
   async sign(message) {
@@ -374,6 +426,35 @@ export default class ArweaveApp {
     };
   }
 
+  async signDataItem(dataItem) {
+    const chunks = ArweaveApp.prepareDataItemChunks(dataItem);
+    let result = null;
+    for (let i = 0; i < chunks.length; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      result = await this.signDataItemSendChunk(
+        i + 1,
+        chunks.length,
+        chunks[i],
+      );
+      if (result.returnCode !== ERROR_CODE.NoError) return result;
+    }
+
+    const first = await this.getSignaturePart(0);
+    if (first.returnCode !== ERROR_CODE.NoError) return first;
+    const second = await this.getSignaturePart(1);
+    if (second.returnCode !== ERROR_CODE.NoError) return second;
+
+    return {
+      deephash: result.output,
+      signature: Buffer.concat([
+        Buffer.from(first.output),
+        Buffer.from(second.output),
+      ]),
+      returnCode: ERROR_CODE.NoError,
+      errorMessage: errorCodeToString(ERROR_CODE.NoError),
+    };
+  }
+
   async signGetDigest(message) {
     console.log("sign");
 
@@ -403,7 +484,7 @@ export default class ArweaveApp {
             digest: result.output,
           };
         },
-        processErrorResponse
+        processErrorResponse,
       );
     }, processErrorResponse);
   }
@@ -423,7 +504,7 @@ export default class ArweaveApp {
         payloadType,
         0,
         chunk,
-        [0x9000, 0x6984, 0x6a80]
+        [0x9000, 0x6984, 0x6a80],
       )
       .then((response) => {
         const errorCodeData = response.slice(-2);
@@ -466,7 +547,7 @@ export default class ArweaveApp {
             result = await this.digestSendChunk(
               1 + i,
               chunks.length,
-              chunks[i]
+              chunks[i],
             );
             if (result.returnCode !== ERROR_CODE.NoError) {
               break;
@@ -480,7 +561,7 @@ export default class ArweaveApp {
             errorMessage: result.errorMessage,
           };
         },
-        processErrorResponse
+        processErrorResponse,
       );
     }, processErrorResponse);
   }
