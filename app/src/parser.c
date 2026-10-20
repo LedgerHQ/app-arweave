@@ -174,6 +174,14 @@ parser_error_t parser_printTarget(const parser_element_t *v,
 
     char uibuffer[200] = {0};
     MEMZERO(outVal, outValLen);
+
+    // Data uploads have no target
+    if (v->len == 0) {
+        snprintf(outVal, outValLen, "None");
+        *pageCount = 1;
+        return parser_ok;
+    }
+
     if (b64url_encode(uibuffer, sizeof(uibuffer), v->ptr, v->len) == 0) {
         return parser_unexpected_buffer_end;
     }
@@ -216,25 +224,82 @@ parser_error_t parser_printQuantity(const parser_element_t *c,
     return parser_ok;
 }
 
-parser_error_t parser_printSize(const parser_element_t *v,
-                                    char *outVal, uint16_t outValLen,
-                                    uint8_t pageIdx, uint8_t *pageCount) {
-
-    char uibuffer[200] = {0};
-    if(v == NULL || outVal == NULL || v->len > sizeof(uibuffer)) {
-        return parser_unexpected_error;
+parser_error_t parser_readDecimalU64(const parser_element_t *v, uint64_t *out) {
+    if (v == NULL || out == NULL || v->len == 0 || v->len > 20) {
+        return parser_unexpected_value;
     }
-    MEMZERO(outVal, outValLen);
-    MEMCPY(uibuffer, v->ptr, v->len);
-    pageStringExt(outVal, outValLen, uibuffer, strnlen(uibuffer, sizeof(uibuffer)), pageIdx, pageCount);
+    uint64_t value = 0;
+    for (uint16_t i = 0; i < v->len; i++) {
+        const uint8_t c = v->ptr[i];
+        if (c < '0' || c > '9') {
+            return parser_unexpected_characters;
+        }
+        const uint64_t digit = c - '0';
+        if (value > (UINT64_MAX - digit) / 10) {
+            return parser_value_out_of_range;
+        }
+        value = value * 10 + digit;
+    }
+    *out = value;
     return parser_ok;
 }
 
-parser_error_t parser_printReward(const parser_element_t *v,
-                                  char *outVal, uint16_t outValLen,
-                                  uint8_t pageIdx, uint8_t *pageCount) {
+parser_error_t parser_formatDataSize(uint64_t bytes, char *out, uint16_t outLen) {
+    if (out == NULL || outLen == 0) {
+        return parser_unexpected_error;
+    }
+    MEMZERO(out, outLen);
+
+    char exact[21] = {0};
+    if (uint64_to_str(exact, sizeof(exact), bytes) != NULL) {
+        return parser_unexpected_error;
+    }
+
+    // The device's snprintf has no 64-bit or padded formats: only %d of values below 1000 and %s
+    char text[48] = {0};
+    if (bytes < 1000) {
+        snprintf(text, sizeof(text), "%s %s", exact, bytes == 1 ? "byte" : "bytes");
+    } else {
+        // Decimal units, two decimals rounded half up; a carry to 1000 moves to the next unit
+        static const char UNIT_LETTERS[] = "KMGTPE";
+        uint8_t unit = 0;
+        uint64_t divisor = 1000;
+        while (bytes / divisor >= 1000 && unit < sizeof(UNIT_LETTERS) - 2) {
+            divisor *= 1000;
+            unit++;
+        }
+        uint64_t whole = bytes / divisor;
+        uint64_t hundredths = (bytes % divisor + divisor / 200) / (divisor / 100);
+        if (hundredths == 100) {
+            whole++;
+            hundredths = 0;
+            if (whole == 1000 && unit < sizeof(UNIT_LETTERS) - 2) {
+                whole = 1;
+                unit++;
+            }
+        }
+        const char decimals[3] = {(char) ('0' + hundredths / 10), (char) ('0' + hundredths % 10), '\0'};
+        const char unitName[3] = {UNIT_LETTERS[unit], 'B', '\0'};
+        snprintf(text, sizeof(text), "%d.%s %s (%s bytes)", (int) whole, decimals, unitName, exact);
+    }
+
+    if (strnlen(text, sizeof(text)) >= outLen) {
+        return parser_unexpected_buffer_end;
+    }
+    MEMCPY(out, text, strnlen(text, sizeof(text)));
+    return parser_ok;
+}
+
+parser_error_t parser_printSize(uint64_t bytes,
+                                char *outVal, uint16_t outValLen,
+                                uint8_t pageIdx, uint8_t *pageCount) {
+    char uibuffer[48] = {0};
+    if (outVal == NULL) {
+        return parser_unexpected_error;
+    }
     MEMZERO(outVal, outValLen);
-    pageStringExt(outVal, outValLen, (char*)v->ptr, v->len, pageIdx, pageCount);
+    CHECK_PARSER_ERR(parser_formatDataSize(bytes, uibuffer, sizeof(uibuffer)))
+    pageStringExt(outVal, outValLen, uibuffer, strnlen(uibuffer, sizeof(uibuffer)), pageIdx, pageCount);
     return parser_ok;
 }
 
@@ -310,7 +375,8 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
             return parser_ok;
         case 2:
             snprintf(outKey, outKeyLen, "Reward");
-            CHECK_PARSER_ERR(parser_printReward(&parser_tx_obj.reward, outVal, outValLen, pageIdx, pageCount));
+            CHECK_PARSER_ERR(parser_printQuantity(&parser_tx_obj.reward, COIN_AMOUNT_DECIMAL_PLACES, true, "", COIN_DEFAULT_DENOM_REPR,
+            outVal, outValLen, pageIdx, pageCount));
             return parser_ok;
         case 3:
             snprintf(outKey, outKeyLen, "Last tx");
@@ -318,7 +384,7 @@ parser_error_t parser_getItem(const parser_context_t *ctx,
             return parser_ok;
         case 4:
             snprintf(outKey, outKeyLen, "Data size");
-            CHECK_PARSER_ERR(parser_printSize(&parser_tx_obj.data_size, outVal, outValLen, pageIdx, pageCount));
+            CHECK_PARSER_ERR(parser_printSize(parser_tx_obj.data_size_value, outVal, outValLen, pageIdx, pageCount));
             return parser_ok;
     }
 

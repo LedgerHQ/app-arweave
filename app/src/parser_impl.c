@@ -15,6 +15,7 @@
 ********************************************************************************/
 
 #include <zxmacros.h>
+#include "parser.h"
 #include "parser_impl.h"
 #include "parser_txdef.h"
 #include "app_mode.h"
@@ -146,6 +147,7 @@ parser_error_t _read(parser_context_t *c, parser_tx_t *v) {
     }
 
     CHECK_PARSER_ERR(parser_readElement(c, &v->data_size))
+    CHECK_PARSER_ERR(parser_readDecimalU64(&v->data_size, &v->data_size_value))
     CHECK_PARSER_ERR(parser_readElement(c, &v->data_root))
     return parser_ok;
 }
@@ -173,9 +175,14 @@ parser_error_t _validateTx(__Z_UNUSED const parser_context_t *c, const parser_tx
 }
 #endif
 
+static bool hasData(const parser_tx_t *v) {
+    return v->data_size_value != 0;
+}
+
 uint8_t _getNumItems(__Z_UNUSED const parser_context_t *c, const parser_tx_t *v) {
+    // Data size is shown outside expert mode whenever the transaction carries data
     if(!app_mode_expert())
-        return (CONST_NUM_UI_ITEMS);
+        return CONST_NUM_UI_ITEMS + (hasData(v) ? DATA_SIZE_NUM_UI_ITEMS : 0);
 
     return CONST_NUM_UI_ITEMS + v->tags_count + DATA_SIZE_NUM_UI_ITEMS + (v->data_root.len > 0 ? DATA_ROOT_NUM_UI_ITEMS : 0);
 }
