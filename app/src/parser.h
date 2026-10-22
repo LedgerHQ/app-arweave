@@ -38,6 +38,12 @@ parser_error_t hashBlob(uint8_t hashResult[48], const uint8_t *data, uint16_t da
 //// returns the number of items in the current parsing context
 parser_error_t parser_getDigest(uint8_t *digest, uint16_t digestLen);
 
+//// a data size: 1 to 20 decimal digits that fit in 64 bits
+parser_error_t parser_readDecimalU64(const parser_element_t *v, uint64_t *out);
+
+//// "768 bytes", "1 byte", or a decimal unit with the exact count: "1.05 MB (1048576 bytes)"
+parser_error_t parser_formatDataSize(uint64_t bytes, char *out, uint16_t outLen);
+
 //// returns the number of items in the current parsing context
 parser_error_t parser_getNumItems(const parser_context_t *ctx, uint8_t *num_items);
 

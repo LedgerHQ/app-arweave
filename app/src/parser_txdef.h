@@ -53,6 +53,7 @@ typedef struct {
     parser_tag_t tags[MAX_NUMBER_TAGS];
 
     parser_element_t data_size;
+    uint64_t data_size_value;
     parser_element_t data_root;
 } parser_tx_t;
 
